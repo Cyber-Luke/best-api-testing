@@ -1,5 +1,5 @@
-# compiled output
-/dist
+# compiled output - WICHTIG: dist/ NICHT ignorieren für npm packages mit binaries!
+# /dist  # <- Auskommentiert, damit dist/ committed wird
 /node_modules
 /build
 

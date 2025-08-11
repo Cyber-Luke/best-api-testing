@@ -1,6 +1,22 @@
-# BEST - GraphQL Integration Testing Framework
+# BEST - GraphQL Integration Testi## 🚨 Häufige Probleme lösen
 
-Eine professionelle GraphQL Integration Testing Framework mit TypeScript-Unterstützung.
+### "best command not found" oder "sh: best: command not found"
+
+**Das ist normal!** Verwenden Sie den vollständigen Pfad:
+
+```bash
+# ❌ Funktioniert nicht:
+best init
+npx best init
+
+# ✅ Funktioniert:
+node ./node_modules/best/dist/cli.js init
+
+# ✅ Oder verwenden Sie npm scripts (nach Setup):
+npm run integration-tests:init
+```
+
+**Warum?** Development-Dependencies sind nicht direkt im PATH verfügbar.ine professionelle GraphQL Integration Testing Framework mit TypeScript-Unterstützung.
 
 ## ⚡ Schnellstart
 
