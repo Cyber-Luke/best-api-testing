@@ -1,23 +1,57 @@
 {
-  "name": "best-api-testing",
-  "version": "0.1.0",
-  "private": true,
+  "name": "best",
+  "version": "1.0.0",
+  "description": "A professional GraphQL integration testing framework with TypeScript support",
+  "keywords": [
+    "graphql",
+    "testing",
+    "integration",
+    "typescript",
+    "api",
+    "cli"
+  ],
+  "author": "Your Name <your.email@example.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Cyber-Luke/best-api-testing.git"
+  },
+  "homepage": "https://github.com/Cyber-Luke/best-api-testing#readme",
+  "bugs": {
+    "url": "https://github.com/Cyber-Luke/best-api-testing/issues"
+  },
   "type": "module",
   "main": "dist/index.js",
+  "bin": {
+    "best": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "templates",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "init:introspection": "node dist/cli.js init",
-    "test:int": "node dist/cli.js run",
-    "dev": "tsx src/cli.ts run --watch"
+    "build": "tsc -p tsconfig.json && chmod +x dist/cli.js",
+    "prepublishOnly": "npm run build",
+    "dev": "tsx src/cli.ts",
+    "test": "npm run build && node dist/cli.js run"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
     "graphql": "^16.10.0",
     "node-fetch": "^3.3.2",
-    "reflect-metadata": "^0.2.2"
+    "reflect-metadata": "^0.2.2",
+    "prompts": "^2.4.2",
+    "chalk": "^5.3.0",
+    "ora": "^8.0.1"
   },
   "devDependencies": {
     "@types/node": "^24.2.1",
+    "@types/prompts": "^2.4.9",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3"
   }
