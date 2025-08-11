@@ -1,0 +1,24 @@
+{
+  "name": "best-api-testing",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "init:introspection": "node dist/cli.js init",
+    "test:int": "node dist/cli.js run",
+    "dev": "tsx src/cli.ts run --watch"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "graphql": "^16.10.0",
+    "node-fetch": "^3.3.2",
+    "reflect-metadata": "^0.2.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.2.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}
