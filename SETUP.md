@@ -1,139 +1,201 @@
-# BEST Framework - Setup Guide
+# BEST - Setup Guide
 
-## For Framework Developers
+## Installation
 
-### Publishing to npm
-
-1. **Build the framework:**
-
-   ```bash
-   npm run build
-   ```
-
-2. **Test locally:**
-
-   ```bash
-   # Test CLI
-   node dist/cli.js --help
-
-   # Test project creation
-   mkdir test-project && cd test-project
-   node ../dist/cli.js init my-test
-   ```
-
-3. **Publish to npm:**
-   ```bash
-   npm publish
-   # or for scoped packages:
-   npm publish --access public
-   ```
-
-### Installing from GitHub
-
-Users can install directly from GitHub:
+### Option 1: Neues Projekt erstellen
 
 ```bash
+# Erstelle ein neues Integrations-Test-Projekt
+npx github:Cyber-Luke/best-api-testing init my-api-tests
+cd my-api-tests
+npm install
+npm run init
+npm test
+```
+
+### Option 2: In bestehendes Projekt integrieren
+
+```bash
+# Im Root-Verzeichnis Ihres bestehenden Projekts:
 npm install --save-dev github:Cyber-Luke/best-api-testing
+
+# Setup-Skript ausführen (automatische Integration)
+npx best-setup
+
+# ODER manuelle Integration:
 ```
 
-## For Framework Users
+#### Manuelle Integration
 
-### Option 1: npm install (when published)
+1. **package.json erweitern:**
 
-```bash
-npm install --save-dev best
-npx best init my-api-tests
+```json
+{
+  "scripts": {
+    "integration-tests": "node ./node_modules/best/dist/cli.js run",
+    "integration-tests:init": "node ./node_modules/best/dist/cli.js init",
+    "integration-tests:build": "tsc -p integration-tests.tsconfig.json",
+    "integration-tests:full": "npm run integration-tests:build && npm run integration-tests"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "@types/node": "^24.2.1"
+  }
+}
 ```
 
-### Option 2: GitHub install
-
-```bash
-npm install --save-dev github:Cyber-Luke/best-api-testing
-npx best init my-api-tests
-```
-
-### Option 3: Global install
-
-```bash
-npm install -g best
-best init my-api-tests
-```
-
-## Complete Workflow Example
-
-1. **Install the framework:**
-
-   ```bash
-   npm install --save-dev best
-   ```
-
-2. **Create a new integration test project:**
-
-   ```bash
-   npx best init my-api-tests
-   cd my-api-tests
-   ```
-
-3. **Follow the interactive setup:**
-
-   - Enter your GraphQL endpoint URL
-   - Choose authentication method
-   - Add custom headers if needed
-
-4. **Install dependencies:**
-
-   ```bash
-   npm install
-   ```
-
-5. **Generate GraphQL client:**
-
-   ```bash
-   npm run init
-   ```
-
-6. **Build and run tests:**
-   ```bash
-   npm run build
-   npm test
-   ```
-
-## Project Structure Created
+2. **Ordnerstruktur erstellen:**
 
 ```
-my-api-tests/
-├── package.json                     # Project config with BEST as dependency
-├── tsconfig.json                    # TypeScript configuration
-├── integration-test.config.json    # GraphQL endpoint & auth settings
-├── README.md                        # Project-specific README
-├── src/
-│   ├── graphql/                     # Auto-generated (after npm run init)
-│   │   ├── index.ts
-│   │   ├── types/index.ts
-│   │   ├── queries/index.ts
-│   │   └── utils.ts
-│   └── tests/                       # Your test files
-│       └── example.test.ts          # Example test file
-└── dist/                           # Compiled output (after npm run build)
+your-project/
+├── integration-tests/
+│   ├── tests/
+│   ├── graphql/           # wird automatisch generiert
+│   └── README.md
+├── integration-test.config.json
+└── integration-tests.tsconfig.json
 ```
 
-## Key Commands
-
-- `best init [project-name]` - Create new project or run introspection
-- `best run` - Run all tests
-- `best run --pattern=text` - Run specific tests
-- `best print-config` - Show current configuration
-- `best --help` - Show help
-- `best --version` - Show version
-
-## Authentication Examples
-
-### No Authentication
+3. **Konfiguration (integration-test.config.json):**
 
 ```json
 {
   "endpoint": "http://localhost:4000/graphql",
-  "auth": { "type": "none" }
+  "auth": {
+    "type": "none"
+  },
+  "headers": {},
+  "schemaFile": "integration-tests/schema.json",
+  "generatedDir": "integration-tests/graphql"
+}
+```
+
+4. **TypeScript Config (integration-tests.tsconfig.json):**
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./dist-integration-tests",
+    "rootDir": "./integration-tests",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  },
+  "include": ["integration-tests/**/*"],
+  "exclude": ["node_modules", "dist", "dist-integration-tests"]
+}
+```
+
+## Verwendung
+
+### 1. Erstmalige Einrichtung
+
+```bash
+# GraphQL Schema introspektieren und Client generieren
+npm run integration-tests:init
+```
+
+### 2. Tests ausführen
+
+```bash
+# Nur Tests ausführen (nach dem Build)
+npm run integration-tests
+
+# Build und Tests ausführen
+npm run integration-tests:full
+```
+
+### 3. Test schreiben
+
+Beispiel Test (`integration-tests/tests/example.test.ts`):
+
+```typescript
+import { Test } from "best/dist/framework/decorators.js";
+import { queries, types } from "../graphql/index.js";
+
+export class MyAPITests {
+  @Test
+  static async getUserTest() {
+    return {
+      execute: async () => {
+        const users = await queries.getAllUsers();
+        return { users };
+      },
+      effects: [
+        {
+          name: "users-array",
+          validate: (ctx) => Array.isArray(ctx.users),
+          onFailureMessage: "Users should be an array",
+        },
+        {
+          name: "users-not-empty",
+          validate: (ctx) => ctx.users.length > 0,
+          onFailureMessage: "Should have at least one user",
+        },
+      ],
+      cleanup: async (ctx) => {
+        // Optional cleanup
+        console.log("Test completed");
+      },
+    };
+  }
+}
+```
+
+## Fehlerbehebung
+
+### "best command not found"
+
+```bash
+# Nutzen Sie den vollen Pfad:
+node ./node_modules/best/dist/cli.js --help
+
+# Oder fügen Sie es zu package.json scripts hinzu
+```
+
+### "Module not found"
+
+```bash
+# Stellen Sie sicher, dass das Projekt gebaut wurde:
+npm run integration-tests:build
+
+# Oder prüfen Sie die TypeScript Konfiguration
+```
+
+### CLI-Befehle
+
+```bash
+# Hilfe anzeigen
+node ./node_modules/best/dist/cli.js --help
+
+# Version anzeigen
+node ./node_modules/best/dist/cli.js --version
+
+# Konfiguration anzeigen
+node ./node_modules/best/dist/cli.js print-config
+
+# Tests mit Pattern ausführen
+node ./node_modules/best/dist/cli.js run --pattern=user
+```
+
+## Authentifizierung
+
+### Basic Auth
+
+```json
+{
+  "auth": {
+    "type": "basic",
+    "username": "your-username",
+    "password": "your-password"
+  }
 }
 ```
 
@@ -141,36 +203,20 @@ my-api-tests/
 
 ```json
 {
-  "endpoint": "https://api.example.com/graphql",
   "auth": {
     "type": "bearer",
-    "token": "your-api-token"
+    "token": "your-jwt-token"
   }
 }
 ```
 
-### Basic Auth
+### Custom Headers
 
 ```json
 {
-  "endpoint": "https://api.example.com/graphql",
-  "auth": {
-    "type": "basic",
-    "username": "user",
-    "password": "pass"
-  }
-}
-```
-
-### With Custom Headers
-
-```json
-{
-  "endpoint": "https://api.example.com/graphql",
-  "auth": { "type": "none" },
   "headers": {
-    "x-api-version": "v1",
-    "x-client": "integration-tests"
+    "X-API-Key": "your-api-key",
+    "Custom-Header": "value"
   }
 }
 ```

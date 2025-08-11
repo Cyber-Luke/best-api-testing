@@ -1,116 +1,266 @@
 # BEST - GraphQL Integration Testing Framework
 
-> A professional, schema-driven integration testing framework for GraphQL APIs with TypeScript support, interactive setup, and declarative test syntax.
+Eine professionelle GraphQL Integration Testing Framework mit TypeScript-Unterstützung.
 
-[![npm version](https://badge.fury.io/js/best.svg)](https://www.npmjs.com/package/best)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+## ⚡ Schnellstart
 
-## Features
-
-- 🚀 **Interactive Setup** - Guided project initialization with configuration wizard
-- 🔑 **Multiple Auth Methods** - Support for Bearer tokens, Basic auth, and custom headers
-- 📝 **Type-Safe Client** - Auto-generated TypeScript client from GraphQL schema
-- 🎯 **Declarative Tests** - Clean test syntax with decorators and effects validation
-- 🛠️ **Professional CLI** - Feature-rich command-line interface with colored output
-- 🔄 **Schema Introspection** - Automatic client generation from live GraphQL endpoints
-- 🧹 **Cleanup Support** - Built-in test cleanup and resource management
-- 📊 **Rich Reporting** - Detailed test results with timing and error reporting
-
-## Installation
-
-### As a development dependency (recommended):
+### Option 1: In bestehendes Projekt integrieren (Empfohlen)
 
 ```bash
-npm install --save-dev best
-```
-
-### From GitHub (latest):
-
-```bash
+# 1. Bibliothek installieren
 npm install --save-dev github:Cyber-Luke/best-api-testing
+
+# 2. Automatisches Setup ausführen
+node ./node_modules/best/dist/setup-integration.js
+
+# 3. Konfiguration anpassen (integration-test.config.json)
+# 4. GraphQL Schema laden
+npm run integration-tests:init
+
+# 5. Tests ausführen
+npm run integration-tests:full
 ```
 
-### Global installation:
+### Option 2: Neues Projekt erstellen
 
 ```bash
-npm install -g best
-```
-
-## Quick Start
-
-### 1. Create a new integration test project
-
-```bash
-# Create a new project with interactive setup
-npx best init my-api-tests
-
-# Or use default name (api-integration-tests)
-npx best init
-```
-
-This will:
-- Create a new project directory
-- Guide you through configuration setup (GraphQL endpoint, authentication, etc.)
-- Generate the basic project structure
-- Create example test files
-
-### 2. Navigate to your project and install dependencies
-
-```bash
+# Neues Projekt erstellen
+node ./node_modules/best/dist/cli.js init my-api-tests
 cd my-api-tests
 npm install
-```
-
-### 3. Generate GraphQL client and run tests
-
-```bash
-# Generate TypeScript client from your GraphQL schema
 npm run init
-
-# Build and run tests
-npm run build
 npm test
 ```
 
-## Project Structure
+## � Häufige Probleme lösen
 
-After initialization, your project will have this structure:
+### "best command not found"
 
-```
-my-api-tests/
-├── package.json
-├── tsconfig.json
-├── integration-test.config.json    # GraphQL endpoint & auth config
-├── README.md
-├── src/
-│   ├── graphql/                     # Auto-generated GraphQL client
-│   │   ├── index.ts
-│   │   ├── types/
-│   │   ├── queries/
-│   │   └── utils.ts
-│   └── tests/                       # Your test files
-│       └── example.test.ts
-└── dist/                           # Compiled JavaScript (after build)
+Das ist normal! Verwenden Sie den vollständigen Pfad:
+
+```bash
+# Anstatt: best init
+# Verwenden Sie:
+node ./node_modules/best/dist/cli.js init
+
+# Anstatt: npx best init
+# Verwenden Sie:
+node ./node_modules/best/dist/cli.js init
 ```
 
-## Configuration
+### Integration in package.json
 
-The `integration-test.config.json` file contains your GraphQL endpoint and authentication settings:
+Fügen Sie diese Scripts zu Ihrer `package.json` hinzu:
 
 ```json
 {
-  "endpoint": "https://api.example.com/graphql",
-  "auth": {
-    "type": "bearer",
-    "token": "your-api-token"
-  },
-  "headers": {
-    "x-api-version": "v1"
-  },
-  "schemaFile": "schema.json",
-  "generatedDir": "src/graphql"
+  "scripts": {
+    "integration-tests": "node ./node_modules/best/dist/cli.js run",
+    "integration-tests:init": "node ./node_modules/best/dist/cli.js init",
+    "integration-tests:build": "tsc -p integration-tests.tsconfig.json",
+    "integration-tests:full": "npm run integration-tests:build && npm run integration-tests"
+  }
 }
 ```
+
+Dann können Sie verwenden:
+
+```bash
+npm run integration-tests        # Tests ausführen
+npm run integration-tests:init   # Schema laden
+npm run integration-tests:full   # Build + Tests
+```
+
+- Create a new project directory
+- Guide you through configuration setup (GraphQL endpoint, authentication, etc.)
+
+## 📁 Projektstruktur nach Integration
+
+```
+your-project/
+├── integration-tests/
+│   ├── tests/
+│   │   └── example.test.ts       # Ihre Tests
+│   ├── graphql/                  # Auto-generiert
+│   │   ├── index.ts
+│   │   ├── types/
+│   │   └── queries/
+│   └── README.md
+├── integration-test.config.json  # GraphQL Konfiguration
+├── integration-tests.tsconfig.json
+└── package.json                  # Mit neuen Scripts
+```
+
+## ✍️ Tests schreiben
+
+```typescript
+import { Test } from "best/dist/framework/decorators.js";
+import { queries, types } from "../graphql/index.js";
+
+export class MyAPITests {
+  @Test
+  static async getUserTest() {
+    return {
+      execute: async () => {
+        const users = await queries.getAllUsers();
+        return { users };
+      },
+      effects: [
+        {
+          name: "users-array",
+          validate: (ctx) => Array.isArray(ctx.users),
+          onFailureMessage: "Users should be an array",
+        },
+        {
+          name: "users-not-empty",
+          validate: (ctx) => ctx.users.length > 0,
+          onFailureMessage: "Should have at least one user",
+        },
+      ],
+      cleanup: async (ctx) => {
+        console.log("Test completed");
+      },
+    };
+  }
+}
+```
+
+## 🔧 Konfiguration
+
+Bearbeiten Sie `integration-test.config.json`:
+
+```json
+{
+  "endpoint": "http://localhost:4000/graphql",
+  "auth": {
+    "type": "none" // oder "basic" oder "bearer"
+  },
+  "headers": {
+    "X-API-Key": "your-key" // Optional
+  },
+  "schemaFile": "integration-tests/schema.json",
+  "generatedDir": "integration-tests/graphql"
+}
+```
+
+### Authentifizierung
+
+**Bearer Token:**
+
+```json
+{
+  "auth": {
+    "type": "bearer",
+    "token": "your-jwt-token"
+  }
+}
+```
+
+**Basic Auth:**
+
+```json
+{
+  "auth": {
+    "type": "basic",
+    "username": "user",
+    "password": "pass"
+  }
+}
+```
+
+## 🔍 CLI-Befehle
+
+```bash
+# Hilfe anzeigen
+node ./node_modules/best/dist/cli.js --help
+
+# Neues Projekt oder Schema laden
+node ./node_modules/best/dist/cli.js init [project-name]
+
+# Tests ausführen
+node ./node_modules/best/dist/cli.js run
+
+# Bestimmte Tests ausführen
+node ./node_modules/best/dist/cli.js run --pattern=user
+
+# Konfiguration anzeigen
+node ./node_modules/best/dist/cli.js print-config
+
+# Version anzeigen
+node ./node_modules/best/dist/cli.js --version
+```
+
+## 🚀 Vollständiger Workflow
+
+1. **Installation:**
+
+   ```bash
+   npm install --save-dev github:Cyber-Luke/best-api-testing
+   ```
+
+2. **Setup (automatisch):**
+
+   ```bash
+   node ./node_modules/best/dist/setup-integration.js
+   ```
+
+3. **Konfiguration anpassen:**
+   Bearbeiten Sie `integration-test.config.json`
+
+4. **Schema laden:**
+
+   ```bash
+   npm run integration-tests:init
+   ```
+
+5. **Tests schreiben:**
+   Erstellen Sie `.test.ts` Dateien in `integration-tests/tests/`
+
+6. **Tests ausführen:**
+   ```bash
+   npm run integration-tests:full
+   ```
+
+## 📚 Weitere Dokumentation
+
+- [SETUP.md](./SETUP.md) - Detaillierte Setup-Anleitung
+- [USAGE.md](./USAGE.md) - Verwendungsanleitung und Fehlerbehebung
+
+## 🤝 Support
+
+Bei Problemen:
+
+1. Prüfen Sie [USAGE.md](./USAGE.md) für häufige Probleme
+2. Verwenden Sie immer den vollständigen Pfad: `node ./node_modules/best/dist/cli.js`
+3. Stellen Sie sicher, dass TypeScript kompiliert wurde: `npm run integration-tests:build`
+
+## Features
+
+- 🚀 TypeScript-basiert
+- 🔍 Automatische GraphQL Schema-Introspection
+- 🎯 Dekorator-basierte Test-Definition
+- ✅ Eingebaute Validierung und Effects
+- 🧹 Cleanup-Hooks
+- 🔐 Authentifizierung (Bearer, Basic, Custom Headers)
+- 📊 Detailliertes Test-Reporting
+- 🔄 Pattern-basierte Test-Filterung
+
+  ## Features
+
+- 🚀 TypeScript-basiert
+- 🔍 Automatische GraphQL Schema-Introspection
+- 🎯 Dekorator-basierte Test-Definition
+- ✅ Eingebaute Validierung und Effects
+- 🧹 Cleanup-Hooks
+- 🔐 Authentifizierung (Bearer, Basic, Custom Headers)
+- 📊 Detailliertes Test-Reporting
+- 🔄 Pattern-basierte Test-Filterung
+
+## License
+
+MIT License - siehe [LICENSE](LICENSE) für Details.
+
+````
 
 ### Authentication Options
 
@@ -158,8 +308,8 @@ export class UserAPITests {
     return {
       execute: async () => {
         // Using mutations (auto-generated)
-        const newUser = await queries.createUser({ 
-          input: { name: "Test User", email: "test@example.com" } 
+        const newUser = await queries.createUser({
+          input: { name: "Test User", email: "test@example.com" }
         });
         return { newUser };
       },
@@ -178,7 +328,7 @@ export class UserAPITests {
     };
   }
 }
-```
+````
 
 ## CLI Commands
 
@@ -223,9 +373,11 @@ npm run test:watch # Run tests in watch mode (if configured)
 ## Test Decorators
 
 ### `@Test`
+
 Standard test decorator for regular test methods.
 
-### `@AuthenticatedTest` 
+### `@AuthenticatedTest`
+
 Test decorator that ensures authentication is configured before running.
 
 ## Advanced Usage
@@ -275,7 +427,7 @@ static async complexUserWorkflow() {
       const users = await queries.users({ limit: 10 });
       const firstUser = users[0];
       const userPosts = await queries.userPosts({ userId: firstUser.id });
-      
+
       return { users, firstUser, userPosts };
     },
     effects: [
