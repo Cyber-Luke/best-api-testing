@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "src",
+    "outDir": "test-dist",
+    "rootDir": ".",
     "module": "esnext",
     "moduleResolution": "node",
     "types": ["node"],
@@ -9,14 +9,12 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "composite": false,
-    "declaration": true,
+    "declaration": false,
     "removeComments": true,
     "allowSyntheticDefaultImports": true,
     "target": "ES2022",
-    "sourceMap": true,
+    "sourceMap": false,
     "baseUrl": "./",
-    "incremental": true,
-    "tsBuildInfoFile": "dist/.tsbuildinfo",
     "skipLibCheck": true,
     "strictNullChecks": true,
     "forceConsistentCasingInFileNames": true,
@@ -26,6 +24,6 @@
     "useDefineForClassFields": false,
     "paths": {}
   },
-  "include": ["src"],
-  "exclude": ["dist", "node_modules"]
+  "include": ["**/*.test.ts"],
+  "exclude": ["node_modules", "dist"]
 }

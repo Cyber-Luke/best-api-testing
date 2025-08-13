@@ -1,0 +1,21 @@
+{
+  "endpoint": "http://localhost:3000/graphql",
+  "auth": {
+    "type": "none"
+  },
+  "schemaFile": "api-integration-tests/schema.json",
+  "outputRoot": "api-integration-tests",
+  "generatedDir": "api-integration-tests/graphql",
+  "testDir": "api-integration-tests/tests",
+  "coverage": {
+    "enabled": true,
+    "failOnBelow": false,
+    "minPercentTotal": 50,
+    "minPercentQueries": 40,
+    "minPercentMutations": 30,
+    "reportFormats": [
+      "table",
+      "summary"
+    ]
+  }
+}

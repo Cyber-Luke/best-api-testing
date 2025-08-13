@@ -204,6 +204,45 @@ export class GraphQLAPITests {
 
 `onFailureMessage` accepts either a string or function `(ctx) => string`.
 
+### Custom Decorators
+
+The framework allows the creation of custom decorators with `createTestDecorator`. This enables flexible test configurations, such as dynamic authentication strategies and test metadata.
+
+**Example: Custom Decorator**
+
+```ts
+import { createTestDecorator } from "best-api-testing";
+
+// Beispiel: Custom Decorator der automatisch einen Bearer Token lädt und einen Timing-Wrapper hinzufügt
+export const PerfAuthTest = createTestDecorator({
+  authStrategy: {
+    type: "bearer",
+    getToken: async () => process.env.API_TOKEN!,
+  },
+  tags: ["perf", "auth"],
+  description: "Misst Laufzeit und setzt authToken ins Context",
+  transformPlan: (plan) => ({
+    ...plan,
+    execute: async () => {
+      const start = Date.now();
+      const ctx = await plan.execute();
+      (ctx as any).durationMs = Date.now() - start;
+      return ctx;
+    },
+  }),
+});
+
+class MyTests {
+  @PerfAuthTest
+  static getData() {
+    return {
+      execute: async () => ({ data: [1, 2, 3] }),
+      effects: [{ name: "has-data", validate: (c) => c.data.length > 0 }],
+    };
+  }
+}
+```
+
 ## Generated GraphQL Client
 
 **Structure** (generated after introspection):

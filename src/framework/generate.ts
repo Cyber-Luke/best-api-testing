@@ -73,7 +73,7 @@ function unwrapToBaseType(typ: any): any {
 
 export function generateClients() {
   const cfg = loadConfig();
-  const schemaPath = path.resolve(process.cwd(), cfg.schemaFile!);
+  const schemaPath = path.resolve(process.cwd(), cfg.schemaFile);
   const raw = readFileSync(schemaPath, "utf-8");
   const data = JSON.parse(raw) as IntrospectionSchema;
   const types = data.__schema.types;
@@ -82,7 +82,7 @@ export function generateClients() {
   const queryType = types.find((t) => t.name === queryTypeName);
   const mutationType = types.find((t) => t.name === mutationTypeName);
 
-  const baseDir = path.resolve(process.cwd(), cfg.generatedDir!);
+  const baseDir = path.resolve(process.cwd(), cfg.generatedDir);
 
   // Create directory structure
   const dirs = ["types", "queries", "mutations"];
@@ -150,7 +150,16 @@ function generateUtils(baseDir: string) {
   const lines: string[] = [];
   lines.push("// AUTO-GENERATED - DO NOT EDIT");
   lines.push("import fetch from 'node-fetch';");
-  lines.push("import { loadConfig } from '../framework/config.js';");
+
+  // Calculate relative path from generated dir to src/framework
+  const relativePath = path.relative(
+    baseDir,
+    path.resolve(process.cwd(), "dist/framework/config.js")
+  );
+  lines.push(
+    `import { loadConfig } from './${relativePath.replace(/\\/g, "/")}';`
+  );
+
   lines.push("");
   lines.push("export type Variables = Record<string, any>;");
   lines.push("export interface GQLResponse<T> {");
@@ -200,15 +209,53 @@ function generateOperations(
   const lines: string[] = [];
   lines.push("// AUTO-GENERATED - DO NOT EDIT");
   lines.push("import { call } from '../utils.js';");
-  lines.push("import type { Order, Pizza } from '../types/index.js';");
+
+  // Calculate relative path from generated queries/mutations dir to dist/framework
+  const operationsDir = path.join(baseDir, folderName);
+  const frameworkDir = path.resolve(process.cwd(), "dist/framework");
+  const coverageRelativePath = path.relative(
+    operationsDir,
+    path.join(frameworkDir, "coverage.js")
+  );
+  lines.push(
+    `import { registerOperation, markUsed } from '${coverageRelativePath.replace(
+      /\\/g,
+      "/"
+    )}';`
+  );
   lines.push("");
 
+  // Find available types for import
+  const availableTypes = types.filter(
+    (t: any) =>
+      t.kind === "OBJECT" &&
+      ![
+        "Query",
+        "Mutation",
+        "__Schema",
+        "__Type",
+        "__Field",
+        "__InputValue",
+        "__EnumValue",
+        "__Directive",
+      ].includes(t.name)
+  );
+
+  if (availableTypes.length > 0) {
+    const typeNames = availableTypes.map((t) => t.name).slice(0, 10); // limit imports
+    lines.push(
+      `import type { ${typeNames.join(", ")} } from '../types/index.js';`
+    );
+    lines.push("");
+  }
+
   root.fields.forEach((f: any) => {
+    const operationName = `${operationType}:${f.name}`;
     const varDecls: string[] = [];
     const varUsage: string[] = [];
     const gqlVars: string[] = [];
 
-    f.args.forEach((a: any) => {
+    f.args?.forEach((a: any) => {
       const tsType = unwrap(a.type);
       const gqlType = getGraphQLTypeName(a.type);
       varDecls.push(`${a.name}: ${tsType}`);
@@ -228,9 +275,17 @@ function generateOperations(
       : "";
     const selectionSet = buildSelectionSet(f.type, types);
 
+    // Add coverage tracking
+    lines.push(`// Register operation for coverage tracking`);
+    lines.push(`registerOperation('${operationName}');`);
+    lines.push("");
+
     lines.push(
       `export async function ${funcName}${signature}: Promise<${returnType}> {`
     );
+    lines.push(`  // Mark operation as used`);
+    lines.push(`  markUsed('${operationName}');`);
+    lines.push("");
     lines.push(
       `  const q = \`${operationType} ${funcName}${gqlVarDef} { ${funcName}${gqlFieldArgs}${selectionSet} }\`;`
     );

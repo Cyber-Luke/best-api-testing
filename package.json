@@ -1,24 +1,45 @@
 {
   "name": "best-api-testing",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.2.0",
   "type": "module",
+  "bin": {
+    "best": "dist/cli.js"
+  },
   "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./framework": {
+      "import": "./dist/framework/index.js",
+      "types": "./dist/framework/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "init:introspection": "node dist/cli.js init",
-    "test:int": "node dist/cli.js run",
-    "dev": "tsx src/cli.ts run --watch"
+    "prepare": "npm run build",
+    "dev": "tsx src/cli.ts run --watch",
+    "compile-tests": "find api-integration-tests -name '*.test.ts' -exec sh -c 'npx tsc \"$1\" --target ES2022 --module esnext --moduleResolution node --experimentalDecorators --emitDecoratorMetadata --outDir \"$(dirname \"$1\")/compiled\" --allowJs' _ {} \\;",
+    "test": "npm run compile-tests && node dist/cli.js run"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
     "graphql": "^16.10.0",
     "node-fetch": "^3.3.2",
-    "reflect-metadata": "^0.2.2"
+    "picocolors": "^1.1.1",
+    "prompts": "^2.4.2",
+    "reflect-metadata": "^0.2.2",
+    "tsx": "^4.19.2"
   },
   "devDependencies": {
     "@types/node": "^24.2.1",
-    "tsx": "^4.19.2",
+    "@types/prompts": "^2.4.9",
     "typescript": "^5.7.3"
   }
 }
