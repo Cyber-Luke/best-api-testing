@@ -43,7 +43,10 @@
     "test": "npm run build && node dist/cli.js run",
     "pack": "npm run build && npm pack",
     "install:global": "npm run build && npm install -g .",
-    "test:integration": "npm run build && node dist/cli.js run"
+    "integration-tests": "node ./node_modules/best/dist/cli.js run",
+    "integration-tests:init": "node ./node_modules/best/dist/cli.js init",
+    "integration-tests:build": "tsc -p integration-tests.tsconfig.json",
+    "integration-tests:full": "npm run integration-tests:build && npm run integration-tests"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
