@@ -1,361 +1,332 @@
-# BEST - GraphQL Integration Testing Framework
+# Best API Testing Framework
 
-> A professional, schema-driven integration testing framework for GraphQL APIs with TypeScript support, interactive setup, and declarative test syntax.
+> A lightweight, schema-driven integration testing framework for GraphQL with TypeScript, decorator API, generated client, and declarative effects.
 
-[![npm version](https://badge.fury.io/js/best.svg)](https://www.npmjs.com/package/best)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+## Abstract
 
-## Features
+This framework automates the essential steps of GraphQL integration testing: from schema introspection through generation of a type-safe client to execution of declarative test plans. The architecture combines minimal but precise code generation (queries/types/utils) with an elegant decorator syntax (`@Test`, `@AuthenticatedTest`) and an effects system for traceable, meaningful assertions. The goal is to reduce testing overhead, promote reusability, and ensure type safety and maintainability.
 
-- 🚀 **Interactive Setup** - Guided project initialization with configuration wizard
-- 🔑 **Multiple Auth Methods** - Support for Bearer tokens, Basic auth, and custom headers
-- 📝 **Type-Safe Client** - Auto-generated TypeScript client from GraphQL schema
-- 🎯 **Declarative Tests** - Clean test syntax with decorators and effects validation
-- 🛠️ **Professional CLI** - Feature-rich command-line interface with colored output
-- 🔄 **Schema Introspection** - Automatic client generation from live GraphQL endpoints
-- 🧹 **Cleanup Support** - Built-in test cleanup and resource management
-- 📊 **Rich Reporting** - Detailed test results with timing and error reporting
+## Table of Contents
 
-## Installation
+- [Motivation and Problem Statement](#motivation-and-problem-statement)
+- [System Overview](#system-overview)
+- [Architecture](#architecture)
+- [Implementation Details](#implementation-details)
+- [Installation and Quick Start](#installation-and-quick-start)
+- [Configuration](#configuration)
+- [Decorators and Test DSL](#decorators-and-test-dsl)
+- [Generated GraphQL Client](#generated-graphql-client)
+- [Examples](#examples)
+- [CLI and Workflows](#cli-and-workflows)
+- [Limitations and Roadmap](#limitations-and-roadmap)
+- [License](#license)
 
-### As a development dependency (recommended):
+## Motivation and Problem Statement
 
-```bash
-npm install --save-dev best
+Manual API tests often suffer from high maintenance overhead, lack of type safety, and unclear separation of execution, validation, and cleanup logic. However, GraphQL schemas already contain the necessary structure to automate much of the test boilerplate. This project addresses:
+
+1. **Reduction of redundant test logic** through a generated, type-safe client
+2. **Clearly defined, declarative effects** (assertions) with meaningful error messages
+3. **Repeatable test flows** (execute, effects, cleanup) with easy extensibility
+
+## System Overview
+
+```mermaid
+flowchart TD
+    A[GraphQL Endpoint] --> B[Introspection]
+    B --> C[TypeScript Codegen\n(Types, Queries, Utils)]
+    C --> D[Test Implementation\n(Decorators, Test Plans)]
+    D --> E[Runner\n(Execute, Effects, Cleanup)]
+    E --> F[Reports\n(Console, Exit Code)]
 ```
 
-### From GitHub (latest):
+**Key Features:**
 
-```bash
-npm install --save-dev github:Cyber-Luke/best-api-testing
+- **Schema-driven code generation** (minimal but targeted, deliberately lightweight)
+- **Declarative tests** with clear separation of execution, validation, and cleanup
+- **Configurable authentication** (none, basic, bearer) and headers
+- **Type-safe GraphQL client** with minimal selection sets
+- **Zero external test framework dependencies**
+
+## Architecture
+
+```mermaid
+graph LR
+    subgraph Framework Core
+    CF[config.ts] --> IN[introspect.ts]
+    IN --> GE[generate.ts]
+    DE[decorators.ts] --> RE[registry.ts]
+    RE --> RU[runner.ts]
+    TY[types.ts] --> RU
+    end
+
+    subgraph Generated GraphQL Client
+    UT[utils.ts] --> QI[queries/index.ts]
+    TI[types/index.ts] --> QI
+    QI --> GI[index.ts]
+    end
+
+    subgraph Tests
+    T1[sample.test.ts]
+    T2[graphql-api.test.ts]
+    T3[advanced.test.ts]
+    end
+
+    GE --> UT
+    GE --> TI
+    GE --> QI
+    GI --> T1
+    GI --> T2
+    GI --> T3
+    DE --> T1
+    DE --> T2
+    DE --> T3
+    RU -->|Console Output & Exit Code| User
 ```
 
-### Global installation:
+**Layered Architecture:**
 
-```bash
-npm install -g best
+- **Infrastructure Layer**: Introspection and code generation
+- **Domain Layer**: Test plans, decorators, registry, runner
+- **Generated Artifacts**: Type-safe client (queries, types, utils)
+
+## Implementation Details
+
+- **Configuration**: `src/framework/config.ts` loads `integration-test.config.json` (with dotenv support), options include endpoint, auth, headers, `schemaFile`, `generatedDir`.
+- **Introspection**: `src/framework/introspect.ts` executes the standardized GraphQL introspection query and persists the schema (JSON).
+- **Code Generation**: `src/framework/generate.ts` creates:
+
+  - **Types** (`src/graphql/types/index.ts`)
+  - **Query Wrappers** (`src/graphql/queries/index.ts`)
+  - **Utils** (`src/graphql/utils.ts`) including auth header handling
+  - **Index** (`src/graphql/index.ts`)
+
+  Selection sets are deliberately minimal (scalar fields), recursion depth is limited (performance/robustness).
+
+- **Test Execution**: `src/framework/runner.ts` loads registered tests, executes `execute`, validates `effects`, optionally calls `cleanup`, and sets exit code.
+- **Decorators/Registry**: `@Test` and `@AuthenticatedTest` register methods in `TestRegistry` (`src/framework/registry.ts`).
+
+**Test Execution Flow:**
+
+```mermaid
+sequenceDiagram
+    participant D as Decorator
+    participant R as Registry
+    participant E as Runner
+    participant S as System under Test
+
+    D->>R: Registration (Name, Auth Flag, Fn)
+    E->>R: List registered tests
+    E->>S: plan.execute()
+    E->>E: Validate effects
+    E->>E: cleanup(ctx)
+    E->>User: Result + Exit Code
 ```
 
-## Quick Start
+## Installation and Quick Start
 
-### 1. Create a new integration test project
-
-```bash
-# Create a new project with interactive setup
-npx best init my-api-tests
-
-# Or use default name (api-integration-tests)
-npx best init
-```
-
-This will:
-- Create a new project directory
-- Guide you through configuration setup (GraphQL endpoint, authentication, etc.)
-- Generate the basic project structure
-- Create example test files
-
-### 2. Navigate to your project and install dependencies
+**Prerequisites**: Node.js ≥ 18, npm
 
 ```bash
-cd my-api-tests
 npm install
+npm run build
+
+# 1) Schema introspection + code generation
+npm run init:introspection
+
+# 2) Run tests
+npm run test:int
 ```
 
-### 3. Generate GraphQL client and run tests
+**Development mode without build** (optional):
 
 ```bash
-# Generate TypeScript client from your GraphQL schema
-npm run init
-
-# Build and run tests
-npm run build
-npm test
-```
-
-## Project Structure
-
-After initialization, your project will have this structure:
-
-```
-my-api-tests/
-├── package.json
-├── tsconfig.json
-├── integration-test.config.json    # GraphQL endpoint & auth config
-├── README.md
-├── src/
-│   ├── graphql/                     # Auto-generated GraphQL client
-│   │   ├── index.ts
-│   │   ├── types/
-│   │   ├── queries/
-│   │   └── utils.ts
-│   └── tests/                       # Your test files
-│       └── example.test.ts
-└── dist/                           # Compiled JavaScript (after build)
+# Example: direct CLI usage via tsx
+npx tsx src/cli.ts init
+npx tsx src/cli.ts run --pattern=pizza
 ```
 
 ## Configuration
 
-The `integration-test.config.json` file contains your GraphQL endpoint and authentication settings:
+**File**: `integration-test.config.json`
 
 ```json
 {
-  "endpoint": "https://api.example.com/graphql",
-  "auth": {
-    "type": "bearer",
-    "token": "your-api-token"
-  },
-  "headers": {
-    "x-api-version": "v1"
-  },
+  "endpoint": "http://localhost:3000/graphql",
+  "auth": { "type": "none" },
+  "headers": { "x-trace": "dev" },
   "schemaFile": "schema.json",
   "generatedDir": "src/graphql"
 }
 ```
 
-### Authentication Options
+**Supported Authentication:**
 
-- **None**: `{ "type": "none" }`
-- **Basic Auth**: `{ "type": "basic", "username": "user", "password": "pass" }`
-- **Bearer Token**: `{ "type": "bearer", "token": "your-token" }`
+- `none`
+- `basic`: `{ "type": "basic", "username": "...", "password": "..." }`
+- `bearer`: `{ "type": "bearer", "token": "..." }`
 
-## Writing Tests
+Additional headers are passed directly to GraphQL requests.
 
-Tests are written using TypeScript decorators and a declarative effects system:
+## Decorators and Test DSL
 
-```typescript
-import { Test } from 'best/dist/framework/decorators.js';
-import { queries, types } from '../graphql/index.js';
+**Test Declaration** (simplified example):
 
-export class UserAPITests {
+```ts
+import { Test } from "../framework/decorators.js";
+import { queries, types } from "../graphql/index.js";
+
+export class GraphQLAPITests {
   @Test
-  static async getUserById() {
+  static queryAllPizzas() {
     return {
       execute: async () => {
-        const user = await queries.user({ id: "123" });
-        return { user };
+        const data = await queries.pizzas();
+        return { pizzas: data } as { pizzas: types.Pizza[] };
       },
       effects: [
         {
-          name: 'user-exists',
-          validate: (ctx) => ctx.user !== null,
-          onFailureMessage: 'User should exist'
+          name: "pizzas-not-empty",
+          validate: (ctx) => ctx.pizzas.length > 0,
+          onFailureMessage: "Expected at least one pizza",
         },
-        {
-          name: 'user-has-email',
-          validate: (ctx) => ctx.user.email.includes('@'),
-          onFailureMessage: (ctx) => `Invalid email: ${ctx.user.email}`
-        }
       ],
-      cleanup: async (ctx) => {
-        // Optional cleanup logic
-        console.log(`🧹 Cleaned up user test for ${ctx.user.id}`);
-      }
-    };
-  }
-
-  @Test
-  static async createAndDeleteUser() {
-    return {
-      execute: async () => {
-        // Using mutations (auto-generated)
-        const newUser = await queries.createUser({ 
-          input: { name: "Test User", email: "test@example.com" } 
-        });
-        return { newUser };
-      },
-      effects: [
-        {
-          name: 'user-created',
-          validate: (ctx) => ctx.newUser.id !== undefined,
-          onFailureMessage: 'User creation should return an ID'
-        }
-      ],
-      cleanup: async (ctx) => {
-        // Clean up created user
-        await queries.deleteUser({ id: ctx.newUser.id });
-        console.log(`🧹 Deleted test user ${ctx.newUser.id}`);
-      }
     };
   }
 }
 ```
 
-## CLI Commands
+**TestPlan Types** (`src/framework/types.ts`):
 
-### Project Management
+- `execute`: `() => Promise<TContext> | TContext`
+- `effects`: `Array<{ name, validate(ctx), onFailureMessage? }>`
+- `cleanup`: Optional cleanup step with access to context
+
+`onFailureMessage` accepts either a string or function `(ctx) => string`.
+
+## Generated GraphQL Client
+
+**Structure** (generated after introspection):
+
+```
+src/graphql/
+├── index.ts        # Exports (types, queries, utils)
+├── utils.ts        # call<T>(query, variables) including auth handling
+├── types/
+│   └── index.ts    # Interfaces (Order, Pizza, ...)
+└── queries/
+    └── index.ts    # Query functions (orders, pizzas, ...)
+```
+
+**Features:**
+
+- **Minimal but type-safe** wrapper functions per root field
+- **Automatic mapping** of common scalars (ID/String/Int/Float/Boolean)
+- **Selection sets**: scalar fields of return type (recursively limited)
+- **Zero runtime dependencies** beyond the framework core
+
+## Examples
+
+**Sample test output:**
 
 ```bash
-# Create new project with interactive setup
-best init [project-name]
-
-# Initialize GraphQL client in existing project
-best init
+✔ queryAllPizzas (67ms)
+✔ queryAllOrders (29ms)
+🧹 Cleanup: tested pizza "bbq_ckn_s"
+✔ testSinglePizzaRetrieval (72ms)
+✔ basicTest (0ms)
+4/4 passed
 ```
 
-### Running Tests
+**Example: End-to-End flow with cleanup:**
 
-```bash
-# Run all tests
-best run
-
-# Run tests matching a pattern
-best run --pattern=user
-
-# Show configuration
-best print-config
-
-# Show help
-best --help
-
-# Show version
-best --version
-```
-
-### npm Scripts (in generated projects)
-
-```bash
-npm run init        # Generate GraphQL client
-npm run build       # Compile TypeScript
-npm test           # Run all tests
-npm run test:watch # Run tests in watch mode (if configured)
-```
-
-## Test Decorators
-
-### `@Test`
-Standard test decorator for regular test methods.
-
-### `@AuthenticatedTest` 
-Test decorator that ensures authentication is configured before running.
-
-## Advanced Usage
-
-### Custom Headers
-
-Add custom headers to all GraphQL requests:
-
-```json
-{
-  "endpoint": "https://api.example.com/graphql",
-  "headers": {
-    "x-api-version": "v2",
-    "x-client-name": "integration-tests"
-  }
-}
-```
-
-### Environment Variables
-
-Use `.env` files for sensitive configuration:
-
-```bash
-# .env
-GRAPHQL_ENDPOINT=https://staging-api.example.com/graphql
-GRAPHQL_TOKEN=staging-token-123
-```
-
-```json
-{
-  "endpoint": "${GRAPHQL_ENDPOINT}",
-  "auth": {
-    "type": "bearer",
-    "token": "${GRAPHQL_TOKEN}"
-  }
-}
-```
-
-### Complex Test Scenarios
-
-```typescript
+```ts
 @Test
-static async complexUserWorkflow() {
+static async testSinglePizzaRetrieval() {
   return {
     execute: async () => {
-      // Multi-step test scenario
-      const users = await queries.users({ limit: 10 });
-      const firstUser = users[0];
-      const userPosts = await queries.userPosts({ userId: firstUser.id });
-      
-      return { users, firstUser, userPosts };
+      const allPizzas = await queries.pizzas();
+      const singlePizza = await queries.pizza({ id: allPizzas[0].id });
+      return { allPizzas, singlePizza, testedId: allPizzas[0].id };
     },
     effects: [
       {
-        name: 'users-returned',
-        validate: (ctx) => ctx.users.length > 0,
-        onFailureMessage: 'Should return at least one user'
-      },
-      {
-        name: 'user-has-posts',
-        validate: (ctx) => ctx.userPosts.length >= 0,
-        onFailureMessage: 'Posts query should succeed (can be empty)'
-      },
-      {
-        name: 'consistent-user-data',
-        validate: (ctx) => ctx.firstUser.id !== undefined,
-        onFailureMessage: 'User ID should be defined'
+        name: "single-pizza-matches-id",
+        validate: (ctx) => ctx.singlePizza.id === ctx.testedId,
+        onFailureMessage: (ctx) =>
+          `Expected pizza ID ${ctx.testedId} but got ${ctx.singlePizza.id}`
       }
-    ]
+    ],
+    cleanup: async (ctx) => {
+      console.log(`🧹 Cleanup: tested pizza "${ctx.singlePizza.id}"`);
+    }
   };
 }
 ```
 
-## Error Handling
+**Basic test example:**
 
-The framework provides detailed error reporting:
-
-```bash
-Running 3 test(s)...
-
-✔ getUserById (45ms)
-✖ createUser (123ms): GraphQL error: User validation failed
-✔ deleteUser (67ms)
-
-2/3 passed
-
-Failed tests:
-  • createUser: GraphQL error: User validation failed
-```
-
-## TypeScript Configuration
-
-The framework generates a TypeScript configuration optimized for GraphQL integration testing:
-
-```json
-{
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "node",
-    "esModuleInterop": true,
-    "strict": true,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "outDir": "./dist",
-    "rootDir": "./src"
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+```ts
+@Test
+static basicTest() {
+  return {
+    execute: () => {
+      return { message: "Test executed" };
+    },
+    effects: [
+      {
+        name: "always-pass",
+        validate: (ctx: { message: string }) =>
+          ctx.message === "Test executed",
+      },
+    ],
+  };
 }
 ```
 
-## Contributing
+## CLI and Workflows
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+- **Initialization** (introspection + code generation): `npm run init:introspection`
+- **Run tests**: `npm run test:int`
+- **Optional filter**: `node dist/cli.js run --pattern=pizza`
+- **Check configuration**: `node dist/cli.js print-config`
+- **Development mode**: `npm run dev` (watch mode with tsx)
+
+The runner loads tests from `dist/tests/*.js`. Always build first (`npm run build`).
+
+**Available CLI commands:**
+
+```bash
+# Initialize schema and generate client
+npx tsx src/cli.ts init
+
+# Run all tests
+npx tsx src/cli.ts run
+
+# Run tests matching pattern
+npx tsx src/cli.ts run --pattern=pizza
+
+# Print current configuration
+npx tsx src/cli.ts print-config
+```
+
+## Limitations and Roadmap
+
+**Current focus** is on clarity and low complexity:
+
+- **Selection sets** are limited to scalar fields; recursion depth is bounded
+- Currently only **query generation** is utilized; mutation wrappers are prepared
+- **No external test framework** needed; simple, standalone execution
+- **Minimal dependencies**: Only GraphQL introspection, fetch, and TypeScript
+
+**Possible enhancements:**
+
+- **Extended selection strategies** (relational paths, fragments)
+- **Mutation flows** including automatic cleanup hooks
+- **Coverage and reporting** improvements
+- **Watch mode** for continuous testing during development
+- **Custom scalar mappings** and advanced type generation
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Support
-
-- 📖 [Documentation](https://github.com/Cyber-Luke/best-api-testing/wiki)
-- 🐛 [Issue Tracker](https://github.com/Cyber-Luke/best-api-testing/issues)
-- 💬 [Discussions](https://github.com/Cyber-Luke/best-api-testing/discussions)
-
----
-
-Built with ❤️ for the GraphQL community
+MIT License. See `LICENSE`.

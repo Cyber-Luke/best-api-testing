@@ -12,24 +12,3 @@ export interface TestPlan<TContext = any> {
 }
 
 export type TestFnReturn = void | TestPlan<any> | Promise<void | TestPlan<any>>;
-
-export interface AuthConfig {
-  type: "none" | "basic" | "bearer";
-  username?: string;
-  password?: string;
-  token?: string;
-}
-
-export interface TestConfig {
-  endpoint: string;
-  auth: AuthConfig;
-  headers: Record<string, string>;
-  schemaFile: string;
-  generatedDir: string;
-}
-
-export interface RunOptions {
-  pattern?: string;
-  watch?: boolean;
-  timeout?: number;
-}
