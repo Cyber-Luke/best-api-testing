@@ -1,9 +1,4 @@
 {
-  "endpoint": "http://localhost:4000/graphql",
-  "auth": {
-    "type": "none"
-  },
-  "headers": {},
-  "schemaFile": "integration-tests/schema.json",
-  "generatedDir": "integration-tests/graphql"
+  "endpoint": "http://localhost:3000/graphql",
+  "auth": { "type": "none" }
 }
