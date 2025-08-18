@@ -1,4 +1,4 @@
-# BEST: GraphQL API Testing Framework
+# BEST: GraphQL API Testing Framework (Alpha)
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7+-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
